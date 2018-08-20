@@ -135,7 +135,7 @@ def save_results(jbase, csv_list, json_save=True, csv_save=True, html_save=True)
     
     #save html
     if html_save:
-        chrome_path = '/usr/bin/google-chrome %s'
+
         web_page = generate_html(csv_list)
         filename = 'appartments.html'
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
@@ -144,18 +144,21 @@ def save_results(jbase, csv_list, json_save=True, csv_save=True, html_save=True)
             f.write(hf.read().replace("{{ block }}", web_page))
             hf.close()
             f.close()
-        webbrowser.get(chrome_path).open(path)
+
 
 
 #open a web page
 url = 'http://docs.python.org/'
 def get_appartments(web=True):
     apps_json, apps_csv, news, districts, today_count = setup()
-    if web==False:
-        save_results(apps_json, apps_csv, True, True, False)
-    else:
-        save_results(apps_json, apps_csv)
+    save_results(apps_json, apps_csv)
 
+    # open broweser
+    if web==True:
+        chrome_path = '/usr/bin/google-chrome %s'
+        filename = 'appartments.html'
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+        webbrowser.get(chrome_path).open(path)
     print("\nНайдено {0} предложений в таких районах: {1}".format(today_count, "; ".join(districts)))
 
 if __name__ == "__main__":
