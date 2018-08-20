@@ -149,9 +149,12 @@ def save_results(jbase, csv_list, json_save=True, csv_save=True, html_save=True)
 
 #open a web page
 url = 'http://docs.python.org/'
-def get_appartments():
+def get_appartments(web=True):
     apps_json, apps_csv, news, districts, today_count = setup()
-    save_results(apps_json, apps_csv)
+    if web==False:
+        save_results(apps_json, apps_csv, True, True, False)
+    else:
+        save_results(apps_json, apps_csv)
 
     print("\nНайдено {0} предложений в таких районах: {1}".format(today_count, "; ".join(districts)))
 
