@@ -10,15 +10,9 @@ import webbrowser
 import os
 from datetime import datetime
 
-url = "https://www.olx.ua/nedvizhimost/kvartiry-komnaty/arenda-kvartir-komnat/kvartira/kiev/?search%5Bfilter_float_price%3Afrom%5D=7000&search%5Bfilter_float_price%3Ato%5D=9000&search%5Bfilter_float_number_of_rooms%3Afrom%5D=2&search%5Bfilter_float_number_of_rooms%3Ato%5D=2&search%5Bphotos%5D=1"
-
-r = requests.get(url)
-
-soup = bs(r.content, "html.parser")
-offers = soup.find_all('td', class_="offer")
 
 def generate_html(offers):
-		#Generate HTML PAGE
+    #Generate HTML PAGE
 
     doc, tag, text = Doc().tagtext()
     with tag('table', id="myTable", klass="table"):
@@ -52,7 +46,27 @@ def generate_html(offers):
 
     result = doc.getvalue()
     return result
+
 def setup():
+    """
+    Setting up. Getting page and finding offers
+    """
+
+    #Genarate url from filters file and base path
+    with open("filters.json") as filters:
+        jfilters = json.load(filters)
+        filters.close()
+        url = """https://www.olx.ua/nedvizhimost/kvartiry-komnaty/arenda-kvartir-komnat/kvartira/kiev/
+        ?search%5Bfilter_float_price%3Afrom%5D={0}&search%5Bfilter_float_price%3Ato%5D={1}
+        &search%5Bfilter_float_number_of_rooms%3Afrom%5D={2}&search%5Bfilter_float_number_of_rooms%3Ato%5D={3}
+        &search%5Bphotos%5D=1""".format(jfilters['price_from'], jfilters['price_to'], jfilters['rooms_from'], jfilters['rooms_to'])
+
+        r = requests.get(url)
+
+        soup = bs(r.content, "html.parser")
+        offers = soup.find_all('td', class_="offer")
+
+    #check for existing offers and modify old ones
     with open('appartments.json', 'r') as base:
         jbase = json.load(base)
         base.close()
@@ -62,11 +76,12 @@ def setup():
         jbase['today'] = today
         for of in jbase['offers']:
             of['time'].replace('Сегодня', today)
-
+    #get ids of today's offers
     links = [x['link'] for x in jbase['offers']]
     districts = set()
     today_count = 0
 
+    #getting relevant data
     csv_list = []
     news = []
     for offer in list(reversed(offers)):
