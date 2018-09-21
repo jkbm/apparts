@@ -9,6 +9,8 @@ from yattag import Doc
 import webbrowser
 import os
 from datetime import datetime
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def generate_html(offers):
@@ -43,9 +45,29 @@ def generate_html(offers):
                                 text(x[1])
                     with tag('td', klass="remove"):
                         text("✖")
+    with tag('div', id='photo-container'):
+        doc.stag('img', src='bar_chart.png', klass="photo")
 
     result = doc.getvalue()
     return result
+
+def generate_plot(times):
+    counted = {}
+    for t in times:
+        if t in counted:
+            counted[t] += 1
+        else:
+            counted[t] = 1
+    x = list(counted.keys())
+    y = list(counted.values())
+    index = np.arange(len(x))
+    plt.bar(index, y, width=0.3)
+    plt.xlabel('Hours', fontsize=5)
+    plt.ylabel('No of offers', fontsize=5)
+    plt.xticks(index, x, fontsize=5, rotation=30)
+    plt.title('Number of offered appartments per hour')
+    #plt.show()
+    plt.savefig('bar_chart.png')
 
 def setup():
     """
@@ -56,15 +78,13 @@ def setup():
     with open("filters.json") as filters:
         jfilters = json.load(filters)
         filters.close()
-        url = """https://www.olx.ua/nedvizhimost/kvartiry-komnaty/arenda-kvartir-komnat/kvartira/kiev/
-        ?search%5Bfilter_float_price%3Afrom%5D={0}&search%5Bfilter_float_price%3Ato%5D={1}
-        &search%5Bfilter_float_number_of_rooms%3Afrom%5D={2}&search%5Bfilter_float_number_of_rooms%3Ato%5D={3}
-        &search%5Bphotos%5D=1""".format(jfilters['price_from'], jfilters['price_to'], jfilters['rooms_from'], jfilters['rooms_to'])
+        url = "https://www.olx.ua/nedvizhimost/kvartiry-komnaty/arenda-kvartir-komnat/kvartira/kiev/?search%5Bfilter_float_price%3Afrom%5D={0}&search%5Bfilter_float_price%3Ato%5D={1}&search%5Bfilter_float_number_of_rooms%3Afrom%5D={2}&search%5Bfilter_float_number_of_rooms%3Ato%5D={3}&search%5Bphotos%5D=1".format(jfilters['price_from'], jfilters['price_to'], jfilters['rooms_from'], jfilters['rooms_to'])
 
         r = requests.get(url)
-
+        print(r.content)
         soup = bs(r.content, "html.parser")
         offers = soup.find_all('td', class_="offer")
+        
 
     #check for existing offers and modify old ones
     with open('appartments.json', 'r') as base:
@@ -84,6 +104,7 @@ def setup():
     #getting relevant data
     csv_list = []
     news = []
+    times = []
     for offer in list(reversed(offers)):
         try:
             if "promoted" in dict(offer.attrs)["class"]:
@@ -95,7 +116,8 @@ def setup():
             link = offer.find('a', class_='link', href=True)['href']
             bottom = offer.find('td', class_="bottom-cell")
             time = bottom.find_all('span')[-1].get_text()
-            if "Сегодня" in time:
+            
+            if "Сегодня" in time:                
                 print(title)
                 print("{0} Ссылка: {1}".format(price.strip(), link.strip()))
                 bottom_clean = "|".join([s.get_text().strip() for s in bottom.find_all('span')])
@@ -107,10 +129,11 @@ def setup():
                 if link not in links:
                     news.append(d_offer)
                     jbase['offers'].append(d_offer)
+                times.append(time.split(':')[0].replace("\t", "")[-2:]) #append to times list
 
         except Exception as e:
             print("Error in html: %s" % e)
-
+    generate_plot(times)
     return jbase, csv_list, news, districts, today_count
 
 def save_results(jbase, csv_list, json_save=True, csv_save=True, html_save=True):
@@ -163,5 +186,4 @@ def get_appartments(web=True):
 
 if __name__ == "__main__":
     get_appartments()
-    
 
